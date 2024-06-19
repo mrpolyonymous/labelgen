@@ -20,6 +20,8 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -40,6 +42,8 @@ public class Fetcher implements AutoCloseable {
         
     }
 
+    static final String CDN_URL_BASE = "https://cdn.rebrickable.com/media/";
+
     class FetchFromRebrickableCdn implements Callable<File> {
         private final String cdnFileName;
         private final File destinationFile;
@@ -51,7 +55,7 @@ public class Fetcher implements AutoCloseable {
 
         @Override
         public File call() throws Exception {
-            URL urlToFetch = new URL("https://cdn.rebrickable.com/media/downloads/" + cdnFileName);
+            URL urlToFetch = new URL(CDN_URL_BASE + cdnFileName);
             System.out.println("Download " + urlToFetch + " to " + destinationFile.getAbsolutePath());
             HttpsURLConnection urlConnection = (HttpsURLConnection) urlToFetch.openConnection();
             try (InputStream is = urlConnection.getInputStream();
@@ -62,8 +66,19 @@ public class Fetcher implements AutoCloseable {
         }
     }
 
-    Future<File> fetchFromRebrickableCdnAsync(String cdnFileName, File destFile) {
-        Future<File> downloadFuture = fetcherService.submit(new FetchFromRebrickableCdn(cdnFileName, destFile));
+    Future<File> fetchFromRebrickableCdnDownloadsAsync(String cdnFileName, File destFile) {
+        Future<File> downloadFuture = fetcherService.submit(new FetchFromRebrickableCdn("downloads/" + cdnFileName, destFile));
+        return downloadFuture;
+    }
+
+    CompletableFuture<File> fetchFromRebrickableCdnAsync(String cdnFileName, File destFile) {
+        CompletableFuture<File> downloadFuture = CompletableFuture.supplyAsync(() -> {
+            try {
+                return new FetchFromRebrickableCdn(cdnFileName, destFile).call();
+            } catch (Exception ex) {
+                throw new CompletionException(ex);
+            }
+        }, fetcherService);
         return downloadFuture;
     }
 

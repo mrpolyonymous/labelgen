@@ -20,11 +20,11 @@ import java.util.Objects;
 /**
  * An entry from a Rebrickable CSV parts list, which maps part, colour and quantity
  */
-record PartColourQuantity(Part part, Colour colour, int quantity) {
+public record PartColourQuantity(Part part, Colour colour, int quantity) {
     
-    public static PartColourQuantity fromLine(String line, PartsDatabase partsDb) { //TODO Map<String, Part> idToPart, Map<String, Colour> idToColour) {
+    public static PartColourQuantity fromLine(String line, PartsCsvDatabase partsDb) {
         String[] elems = Utils.splitCsv(line, 3);
-        elems[0] = Utils.trimLeadingZeros(elems[0]);
+        //elems[0] = Utils.trimLeadingZeros(elems[0]);
 
         try {
             return new PartColourQuantity(partsDb.getPartById(elems[0]), partsDb.getColourById(elems[1]), Integer.parseInt(elems[2]));
@@ -34,7 +34,10 @@ record PartColourQuantity(Part part, Colour colour, int quantity) {
         }
     }
 
-    PartColourQuantity(Part part, Colour colour, int quantity) {
+    /**
+     * Explicit constructor to enforce non-null rules
+     */
+    public PartColourQuantity(Part part, Colour colour, int quantity) {
         Objects.requireNonNull(part, "part is required");
         Objects.requireNonNull(colour, "part colour is required");
         this.part = part;

@@ -15,14 +15,16 @@ limitations under the License.
 */
 package mrpolyonymous.labelgenerator;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * A part definition read from Rebrickable data, with some additional fields for convenience.
  * 
- * @param numericId
- *        numeric integer part of the ID, may be null
  */
-record Part(String id, String idIgnoringPrint, String description, String partCategoryId, Integer numericId) {
+public record Part(String id, String idIgnoringPrint, String description, String partCategoryId, Integer numericId) {
 
+    private static final Pattern PRINT_PATTERN = Pattern.compile("^(.+)(pr|pat)[a-z]?\\d+$");
     public static String idIgnoringPrint(String id) {
         try {
             Integer.parseInt(id);
@@ -30,9 +32,11 @@ record Part(String id, String idIgnoringPrint, String description, String partCa
         } catch (NumberFormatException e) {
         }
 
-        String[] parts = id.split("[^\\d]+");
-        if (parts.length > 0 && parts[0].length() > 0) {
-            return parts[0];
+        Matcher m = PRINT_PATTERN.matcher(id);
+        if (m.matches()) {
+            // recursive call because some parts have both print and pattern and I'm too lazy 
+            // to figure out the correct regex
+            return idIgnoringPrint(m.group(1));
         }
         return id;
     }

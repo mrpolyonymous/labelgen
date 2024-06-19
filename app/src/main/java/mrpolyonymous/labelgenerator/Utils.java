@@ -15,6 +15,13 @@ limitations under the License.
 */
 package mrpolyonymous.labelgenerator;
 
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+
 public class Utils {
 
     /**
@@ -58,11 +65,19 @@ public class Utils {
      * Trim leading '0' characters from a string
      */
     static String trimLeadingZeros(String id) {
-        // Not the most efficient way of doing it
-        // check for length > 1 so that "0" doesn't get trimmed to ""
-        while (id.startsWith("0") && id.length() > 1) {
-            id = id.substring(1);
+        if (id.isEmpty()) {
+            return id;
         }
+        if (id.charAt(0) != '0') {
+            return id;
+        }
+
+        int zeroIndex = 0;
+        while(zeroIndex < id.length() - 1 && id.charAt(zeroIndex) == '0') {
+            zeroIndex++;
+        }
+        id = id.substring(zeroIndex);
+        
         return id;
     }
     
@@ -77,5 +92,36 @@ public class Utils {
         return s.substring(0, upToSpace).strip();
     }
 
+    /**
+     * Convert a collection into a list of smaller sublists of a given max size
+     */
+    public static <T> List<List<T>> split(Collection<T> collection, int splitSize) {
+        if (collection.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<List<T>> results = new ArrayList<>(1 + collection.size()/splitSize);
+        List<T> sublist = new ArrayList<>(splitSize);
+        results.add(sublist);
+        Iterator<T> it = collection.iterator();
+        while (it.hasNext()) {
+            T elem = it.next();
+            sublist.add(elem);
+            if (sublist.size() >= splitSize && it.hasNext()) {
+                sublist = new ArrayList<>(splitSize);
+                results.add(sublist);
+            }
+        }
+        return results;
+    }
+
+    public static boolean isChild(Path child, Path possibleParent) {
+        Path parent = child;
+        while ((parent = parent.getParent()) != null) {
+            if (parent.equals(possibleParent)) {
+                return true;
+            }
+        }
+        return false;
+    }
 
 }

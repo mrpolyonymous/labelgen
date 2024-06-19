@@ -55,8 +55,8 @@ public class LabelMain {
 
         try (Fetcher fetcher = new Fetcher()) {
 
-            PartsDatabaseCreator dbCreator = new PartsDatabaseCreator(dataDir);
-            PartsDatabase partsDatabase = dbCreator.readRebrickablePartsData(fetcher);
+            PartsCsvDatabaseCreator dbCreator = new PartsCsvDatabaseCreator(dataDir);
+            PartsCsvDatabase partsDatabase = dbCreator.readRebrickablePartsData(fetcher);
 
             MyParts myParts = new MyParts(partsDatabase);
             myParts.readMyParts(partsFile);

@@ -35,10 +35,15 @@ import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-
+/**
+ * Map parts to images by using LDraw bundles. Generally fast, but can miss images for more complicated
+ * or obscure parts that do not have a render in the LDraw bundles.
+ */
 public class PartsToImageMapper {
 
+    /** Rebrickable ID for black */
     static final String COLOUR_BLACK = "0";
+
     /** Part categories where black is the preferred rendering colour */
     static final Set<String> PREFER_BLACK_CATEGORIES;
 
@@ -125,28 +130,30 @@ public class PartsToImageMapper {
     private final File localImagesFolder;
     
     private final File ldrawBundleFolder;
-    // For random part images that have been hand-downloaded
-    private final String partImagesFolder;
 
     private final Set<Colour> missingColours;
     
     private final Fetcher fetcher;
-    private final PartsDatabase partsDb;
+    private final PartsCsvDatabase partsDb;
     
-	public PartsToImageMapper(File dataFolder, PartsDatabase partsDb, Fetcher fetcher) {
-	    if (!dataFolder.exists() && !dataFolder.isDirectory()) {
-	        throw new IllegalArgumentException("Invalid data directory " + dataFolder);
-	    }
+	public PartsToImageMapper(File dataFolder, PartsCsvDatabase partsDb, Fetcher fetcher) {
+	    try {
+            this.dataFolder = dataFolder.getCanonicalFile();
+        } catch (IOException e) {
+            throw new RuntimeException("Could not resolve path " + dataFolder, e);
+        }
 
-	    this.dataFolder = dataFolder;
+        if (!this.dataFolder.exists() || !this.dataFolder.isDirectory()) {
+            throw new IllegalArgumentException("Invalid data directory " + dataFolder);
+        }
+
 	    this.partsDb = partsDb;
 	    this.fetcher = fetcher;
 		
-		partImagesFolder = "part_images";
-		localImagesFolder = new File(dataFolder, "local_images");
+		localImagesFolder = new File(this.dataFolder, "local_images");
 		localImagesFolder.mkdirs();
 		
-		ldrawBundleFolder = new File(dataFolder, "ldraw_bundles");
+		ldrawBundleFolder = new File(this.dataFolder, "ldraw_bundles");
 		ldrawBundleFolder.mkdirs();
 		
 		missingColours = new HashSet<>();
@@ -268,8 +275,6 @@ public class PartsToImageMapper {
 	    }
 
         List<File> possiblePartsFiles = new ArrayList<>();
-        possiblePartsFiles.add(new File(new File(dataFolder, partImagesFolder), part.id() + ".jpg"));
-        possiblePartsFiles.add(new File(new File(dataFolder, partImagesFolder), part.id() + ".png"));
         for (File partImage: possiblePartsFiles) {
             if (partImage.exists() && partImage.isFile()) {
                 File destFile = new File(localImagesFolder, partImage.getName());
@@ -393,7 +398,7 @@ public class PartsToImageMapper {
             System.out.println("No parts file for colour " + colour + " exists on rebrickable, skipping");
             return null;
         } else {
-            return fetcher.fetchFromRebrickableCdnAsync("ldraw/parts_" + colour.id() + ".zip", localFile);
+            return fetcher.fetchFromRebrickableCdnDownloadsAsync("ldraw/parts_" + colour.id() + ".zip", localFile);
         }
     }
 

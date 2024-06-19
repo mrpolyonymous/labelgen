@@ -15,5 +15,5 @@ limitations under the License.
 */
 package mrpolyonymous.labelgenerator;
 
-record PartAndImageInfo(PartAndQuantitiesByColour part, ImageInfo imageInfo) {
+record PartAndImageInfo(Part part, ImageInfo imageInfo) {
 }

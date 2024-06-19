@@ -23,22 +23,24 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPInputStream;
 
-public class PartsDatabaseCreator {
+public class PartsCsvDatabaseCreator {
     final File dataFolder;
 
-    public PartsDatabaseCreator(File dataFolder) {
+    public PartsCsvDatabaseCreator(File dataFolder) {
         this.dataFolder = dataFolder;
     }
 
-    public PartsDatabase readRebrickablePartsData(Fetcher fetcher) throws IOException {
+    public PartsCsvDatabase readRebrickablePartsData(Fetcher fetcher) throws IOException {
         fetchAndUnzipCsv(fetcher, "colors");
         fetchAndUnzipCsv(fetcher, "part_categories");
         fetchAndUnzipCsv(fetcher, "parts");
+        fetchAndUnzipCsv(fetcher, "elements");
         
-        PartsDatabase partsDatabase = new PartsDatabase();
+        PartsCsvDatabase partsDatabase = new PartsCsvDatabase();
         partsDatabase.readColours(new File(dataFolder, "colors.csv"));
         partsDatabase.readPartCategories(new File(dataFolder, "part_categories.csv"));
         partsDatabase.readFullPartsList(new File(dataFolder, "parts.csv"));
+        partsDatabase.readElements(new File(dataFolder, "elements.csv"));
         return partsDatabase;
     }
 
@@ -55,7 +57,7 @@ public class PartsDatabaseCreator {
         }
         
         if (!gzipFile.exists()) {
-            Future<File> gzipFileFuture = fetcher.fetchFromRebrickableCdnAsync(gzipFileName, gzipFile);
+            Future<File> gzipFileFuture = fetcher.fetchFromRebrickableCdnDownloadsAsync(gzipFileName, gzipFile);
             try {
                 gzipFileFuture.get();
             } catch (InterruptedException e) {

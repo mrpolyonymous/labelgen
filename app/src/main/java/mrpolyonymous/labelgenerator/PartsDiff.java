@@ -28,7 +28,7 @@ public class PartsDiff {
     // Only care about part and colour, not quantity
     record PartColour(Part part, Colour colour) {}
     
-    public static MyParts diff(MyParts currentParts, PartsDatabase currentDb, MyParts previousParts, PartsDatabase previousDb) {
+    public static MyParts diff(MyParts currentParts, PartsCsvDatabase currentDb, MyParts previousParts, PartsCsvDatabase previousDb) {
         Set<String> oldPartIds = new HashSet<>();
         Set<PartColour> oldPartColours = new HashSet<>();
         

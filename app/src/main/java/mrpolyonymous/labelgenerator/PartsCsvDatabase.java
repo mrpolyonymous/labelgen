@@ -23,33 +23,41 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.TreeMap;
 
 /**
- * In-memory database of parts read from rebrickable data
+ * In-memory database of parts read from Rebrickable CSV data files
  */
-public class PartsDatabase {
+public class PartsCsvDatabase {
 
+    private static record PartColourId(String partId, String colourId) {}
+    
     private Map<String, Colour> colours;
     private Map<String, PartCategory> partCategories;
     private Map<String, Part> parts;
+    /** Map element ID to element data */
+    private Map<String, Element> elements;
+    /** Map part ID to count of number of elements that reference that part */
+    private Map<String, Integer> elementCountsByPart;
+    /** Map part and colour ID to element */
+    private Map<PartColourId, Element> elementByPartColour;
 
-    public PartsDatabase() {
+    public PartsCsvDatabase() {
         colours = new HashMap<>();
-        partCategories = new TreeMap<>();
-        parts = new TreeMap<>();
+        partCategories = new HashMap<>();
+        parts = new HashMap<>();
+        elements = new HashMap<>();
+        elementCountsByPart = new HashMap<String, Integer>();
+        elementByPartColour = new HashMap<>();
     }
 
     public void readColours(File dataFile) throws IOException {
         try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
             String line = br.readLine();
             // Skip header line id,name,rgb,is_trans
-            line = br.readLine();
-            while (line != null) {
+            while ((line = br.readLine()) != null) {
                 String[] elems = Utils.splitCsv(line, 4);
                 Colour colour = new Colour(elems[0], elems[1]);
                 colours.put(elems[0], colour);
-                line = br.readLine();
             }
         }
     }
@@ -58,11 +66,9 @@ public class PartsDatabase {
         try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
             String line = br.readLine();
             // Skip header line id,name
-            line = br.readLine();
-            while (line != null) {
+            while ((line = br.readLine()) != null) {
                 String[] elems = Utils.splitCsv(line, 2);
                 partCategories.put(elems[0], new PartCategory(elems[0], elems[1]));
-                line = br.readLine();
             }
         }
     }
@@ -71,27 +77,58 @@ public class PartsDatabase {
         try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
             String line = br.readLine();
             // Skip header line part_num,name,part_cat_id,part_material
-            line = br.readLine();
-            while (line != null) {
+            while ((line = br.readLine()) != null) {
                 String[] elems = Utils.splitCsv(line, 4);
                 // rebrickable started adding leading zeros to numeric part ids under a 
                 // certain length, which can mess up part matching. Trim them
                 // down to the actual part ID.
-                elems[0] = Utils.trimLeadingZeros(elems[0]);
+                //elems[0] = Utils.trimLeadingZeros(elems[0]);
                 parts.put(elems[0], Part.from(elems[0], elems[1], elems[2]));
-                line = br.readLine();
                 
                 // elems[3] is part material, which we ignore
             }
         }
     }
     
+    public void readElements(File dataFile) throws FileNotFoundException, IOException {
+        try (BufferedReader br = new BufferedReader(new FileReader(dataFile))) {
+            String line = br.readLine();
+            // Skip header line element_id,part_num,color_id,design_id
+            while ((line = br.readLine()) != null) {
+                if (line.isBlank()) {
+                    continue;
+                }
+                String[] elems = Utils.splitCsv(line, 4);
+                String partId = elems[1]; //Utils.trimLeadingZeros(elems[1]);
+                Element element = new Element(elems[0], partId, elems[2], elems[3]);
+                elements.put(elems[0], element);
+                elementByPartColour.put(new PartColourId(partId, elems[2]), element);
+                
+                elementCountsByPart.compute(partId, (k,v)->{
+                    if (v == null) {
+                        return 1;
+                    } else {
+                        return 1 + v.intValue();
+                    }
+                });
+            }
+        }
+    }
+
     public Part getPartById(String partId) {
         Part part = parts.get(partId);
         if (part == null) {
             throw new NoSuchElementException("No part found with ID " + partId);
         }
         return part;
+    }
+
+    public int getElementCountByPartId(String partId) {
+        Integer count = elementCountsByPart.get(partId);
+        if (count == null) {
+            throw new NoSuchElementException("No part found with ID " + partId);
+        }
+        return count.intValue();
     }
 
     public Colour getColourById(String colourId) {
@@ -126,5 +163,34 @@ public class PartsDatabase {
             }
         }
         return null;
+    }
+
+    public Element getElementById(String id) {
+        Element element = elements.get(id);
+        if (element == null) {
+            throw new NoSuchElementException("No element found with ID " + id);
+        }
+        return element;
+    }
+
+    /**
+     * Get an element by part and colour ID, throwing NoSuchElementException if not found
+     * @throws  NoSuchElementException if the element is not found
+     * 
+     */
+    public Element getElementByPartColourId(String partId, String colourId) {
+        Element element = elementByPartColour.get(new PartColourId(partId, colourId));
+        if (element == null) {
+            throw new NoSuchElementException("No element found for part ID " + partId + " and colour ID " + colourId);
+        }
+        return element;
+    }
+
+    /**
+     * Get an element by part and colour ID, returning null if not found
+     */
+    public Element tryGetElementByPartColourId(String partId, String colourId) {
+        Element element = elementByPartColour.get(new PartColourId(partId, colourId));
+        return element;
     }
 }

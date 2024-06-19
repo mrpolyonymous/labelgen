@@ -20,6 +20,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -27,9 +28,9 @@ import java.util.TreeMap;
 
 public class OutputGenerator {
 
-    private final PartsDatabase partsDatabase;
+    private final PartsCsvDatabase partsDatabase;
 
-    public OutputGenerator(PartsDatabase partsDatabase) {
+    public OutputGenerator(PartsCsvDatabase partsDatabase) {
         this.partsDatabase = partsDatabase;
     }
 
@@ -46,7 +47,18 @@ public class OutputGenerator {
             Objects.requireNonNull(partCategory, "missing category");
 
             List<PartAndImageInfo> partList = byCategory.computeIfAbsent(partCategory, k -> new ArrayList<>());
-            partList.add(new PartAndImageInfo(part, imageInfo));
+            partList.add(new PartAndImageInfo(part.part(), imageInfo));
+        }
+        
+        for (List<PartAndImageInfo> partsList : byCategory.values()) {
+            Collections.sort(partsList, (p1, p2) -> {
+                Part part1 = p1.part();
+                Part part2 = p2.part();
+                if (part1.numericId() != null && part2.numericId() != null) {
+                    return part1.numericId().compareTo(part2.numericId());
+                }
+                return part1.id().compareTo(part2.id());
+            });
         }
 
         try (PrintWriter pw = new PrintWriter(new FileWriter(outputFile))) {
@@ -119,7 +131,7 @@ public class OutputGenerator {
 
             for (PartAndImageInfo partAndImageInfo : parts) {
 
-                PartAndQuantitiesByColour part = partAndImageInfo.part();
+                Part part = partAndImageInfo.part();
                 ImageInfo imageInfo = partAndImageInfo.imageInfo();
 //                if (part.quantity() < 4) {
 //                    continue;
@@ -132,9 +144,9 @@ public class OutputGenerator {
                 } else {
                     pw.println("<img src=\"" + imageInfo.path().toString().replace('\\', '/') + "\" width=\"40px\" />");
                 }
-                pw.println(Utils.trimToLength(part.part().description(), 50));
+                pw.println(Utils.trimToLength(part.description(), 50));
                 pw.println("<br/>");
-                pw.println("<span class=\"label\">ID:</span> " + part.part().id());
+                pw.println("<span class=\"label\">ID:</span> " + part.id());
                 pw.println("<br/>");
 
                 pw.println("<span class=\"label\">Cat:</span> " + category.description());

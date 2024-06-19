@@ -16,7 +16,12 @@ limitations under the License.
 package mrpolyonymous.labelgenerator;
 
 /**
- * A colour definition read from Rebrickable data
+ * An element definition read from Rebrickable data. Basically an Element
+ * is a combination of a part and a colour, with a given ID. Elements
+ * are useful because they have dedicated images on Rebrickable. However,
+ * not all Part/Colour combinations have an Element in the database, even
+ * if they exist in a parts list. 
  */
-public record Colour(String id, String description) {
+public record Element(String id, String partId, String colourId, String designId) {
+
 }
